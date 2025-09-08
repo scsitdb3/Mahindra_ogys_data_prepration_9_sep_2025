@@ -155,12 +155,32 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                             else:
                                 Mrn_data.append(data_df)
                     except Exception as e:
-                        validation_errors.append(f"{location}: Error reading MRN file - {str(e)}")
+                        try:
+                            if len(mrn_list) >= 2:
+                            header_df = mrn_list[1].iloc[0] 
+                            data_df = mrn_list[0].iloc[1:].copy()
+                            data_df.columns = header_df
+                            data_df.reset_index(drop=True, inplace=True)
+                            
+                            required_cols = ['PO Number', 'Part Number', 'Stock Recvd', 'Receipt Type']
+                            missing_cols = [col for col in required_cols if col not in data_df.columns]
+                            if missing_cols:
+                                validation_errors.append(f"{location}: MRN file missing columns - {', '.join(missing_cols)}")
+                            else:
+                                Mrn_data.append(data_df)
+                            # mrn_list = read_file(file_path) 
+                            # Mrn_data.append(data_df)
+                        except Exception as e:
+                            validation_errors.append(f"{location}: Error reading MRN file - {str(e)}")
+                        # validation_errors.append(f"{location}: Error reading MRN file - {str(e)}")
         # Process OEM data
         if oem_data:
             key = f"OEM_{brand}_{dealer}_{location}.xlsx"
             oem_key = pd.concat(oem_data, ignore_index=True)
-
+            oem_key['Supplier Name'] = oem_key['Supplier Name'].astype(str)
+            oem_key['Po line item status'] = oem_key['Po line item status'].astype(str)
+            oem_key['PO Rejection Reason'] = oem_key['PO Rejection Reason'].astype(str)
+            
             # Date validation
             try:
                 oem_key2 = oem_key
@@ -492,6 +512,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
