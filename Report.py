@@ -139,39 +139,88 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                     else:
                         Sale_order_data.append(df)
                 elif file_lower.startswith('mrn'):
-                    # Validate MRN columns
                     try:
                         mrn_list = pd.read_html(file_path)
                         if len(mrn_list) >= 2:
-                            header_df = mrn_list[1].iloc[0] 
+                            header_df = mrn_list[1].iloc[0]
                             data_df = mrn_list[0].iloc[1:].copy()
-                            data_df.columns = header_df
+                            # Deduplicate column names
+                            columns = list(header_df)
+                            seen = {}
+                            new_columns = []
+                            for col in columns:
+                                if pd.isna(col):
+                                    col = "Unnamed"
+                                if col in seen:
+                                    seen[col] += 1
+                                    new_columns.append(f"{col}_{seen[col]}")
+                                else:
+                                    seen[col] = 0
+                                    new_columns.append(col)
+                            data_df.columns = new_columns
                             data_df.reset_index(drop=True, inplace=True)
-                            
                             required_cols = ['PO Number', 'Part Number', 'Stock Recvd', 'Receipt Type']
                             missing_cols = [col for col in required_cols if col not in data_df.columns]
                             if missing_cols:
                                 validation_errors.append(f"{location}: MRN file missing columns - {', '.join(missing_cols)}")
                             else:
                                 Mrn_data.append(data_df)
+                        else:
+                            validation_errors.append(f"{location}: MRN HTML file does not contain enough tables.")
                     except Exception as e:
+                        # Try reading as Excel/CSV as fallback
                         try:
-                            mrn_list = read_file(file_path)
-                            if len(mrn_list) >= 2:
-                                header_df = mrn_list[1].iloc[0] 
-                                data_df = mrn_list[0].iloc[1:].copy()
-                                data_df.columns = header_df
-                                data_df.reset_index(drop=True, inplace=True)        
-                                required_cols = ['PO Number', 'Part Number', 'Stock Recvd', 'Receipt Type']
-                                missing_cols = [col for col in required_cols if col not in data_df.columns]
-                                if missing_cols:
-                                    validation_errors.append(f"{location}: MRN file missing columns - {', '.join(missing_cols)}")
-                                else:
-                                    Mrn_data.append(data_df)                            
-                            # mrn_list = read_file(file_path) 
-                            # Mrn_data.append(data_df)
-                        except Exception as e:
-                            validation_errors.append(f"{location}: Error reading MRN file - {str(e)}")
+                            df_mrn = None
+                            try:
+                                df_mrn = pd.read_excel(file_path, engine='openpyxl')
+                            except Exception:
+                                try:
+                                    df_mrn = pd.read_excel(file_path, engine='xlrd')
+                                except Exception:
+                                    try:
+                                        df_mrn = pd.read_csv(file_path, encoding='windows-1252', sep=None, engine='python', on_bad_lines='skip')
+                                    except Exception as e2:
+                                        validation_errors.append(f"{location}: Error reading MRN file as Excel/CSV - {str(e2)}")
+                            if df_mrn is not None:
+                                Mrn_data.append(df_mrn)
+                        except Exception as e3:
+                            validation_errors.append(f"{location}: Error reading MRN file - {str(e3)}")
+                    
+
+                    
+                    # Validate MRN columns
+                    # try:
+                    #     mrn_list = pd.read_html(file_path)
+                    #     if len(mrn_list) >= 2:
+                    #         header_df = mrn_list[1].iloc[0] 
+                    #         data_df = mrn_list[0].iloc[1:].copy()
+                    #         data_df.columns = header_df
+                    #         data_df.reset_index(drop=True, inplace=True)
+                            
+                    #         required_cols = ['PO Number', 'Part Number', 'Stock Recvd', 'Receipt Type']
+                    #         missing_cols = [col for col in required_cols if col not in data_df.columns]
+                    #         if missing_cols:
+                    #             validation_errors.append(f"{location}: MRN file missing columns - {', '.join(missing_cols)}")
+                    #         else:
+                    #             Mrn_data.append(data_df)
+                    # except Exception as e:
+                    #     try:
+                    #         mrn_list = read_file(file_path)
+                    #         if len(mrn_list) >= 2:
+                    #             header_df = mrn_list[1].iloc[0] 
+                    #             data_df = mrn_list[0].iloc[1:].copy()
+                    #             data_df.columns = header_df
+                    #             data_df.reset_index(drop=True, inplace=True)        
+                    #             required_cols = ['PO Number', 'Part Number', 'Stock Recvd', 'Receipt Type']
+                    #             missing_cols = [col for col in required_cols if col not in data_df.columns]
+                    #             if missing_cols:
+                    #                 validation_errors.append(f"{location}: MRN file missing columns - {', '.join(missing_cols)}")
+                    #             else:
+                    #                 Mrn_data.append(data_df)                            
+                    #         # mrn_list = read_file(file_path) 
+                    #         # Mrn_data.append(data_df)
+                    #     except Exception as e:
+                    #         validation_errors.append(f"{location}: Error reading MRN file - {str(e)}")
                         # validation_errors.append(f"{location}: Error reading MRN file - {str(e)}")
         # Process OEM data
         if oem_data:
@@ -512,6 +561,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
