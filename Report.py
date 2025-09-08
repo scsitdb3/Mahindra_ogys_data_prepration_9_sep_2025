@@ -156,18 +156,18 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                                 Mrn_data.append(data_df)
                     except Exception as e:
                         try:
+                            mrn_list = read_file(file_path)
                             if len(mrn_list) >= 2:
-                            header_df = mrn_list[1].iloc[0] 
-                            data_df = mrn_list[0].iloc[1:].copy()
-                            data_df.columns = header_df
-                            data_df.reset_index(drop=True, inplace=True)
-                            
-                            required_cols = ['PO Number', 'Part Number', 'Stock Recvd', 'Receipt Type']
-                            missing_cols = [col for col in required_cols if col not in data_df.columns]
-                            if missing_cols:
-                                validation_errors.append(f"{location}: MRN file missing columns - {', '.join(missing_cols)}")
-                            else:
-                                Mrn_data.append(data_df)
+                                header_df = mrn_list[1].iloc[0] 
+                                data_df = mrn_list[0].iloc[1:].copy()
+                                data_df.columns = header_df
+                                data_df.reset_index(drop=True, inplace=True)        
+                                required_cols = ['PO Number', 'Part Number', 'Stock Recvd', 'Receipt Type']
+                                missing_cols = [col for col in required_cols if col not in data_df.columns]
+                                if missing_cols:
+                                    validation_errors.append(f"{location}: MRN file missing columns - {', '.join(missing_cols)}")
+                                else:
+                                    Mrn_data.append(data_df)                            
                             # mrn_list = read_file(file_path) 
                             # Mrn_data.append(data_df)
                         except Exception as e:
@@ -512,6 +512,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
