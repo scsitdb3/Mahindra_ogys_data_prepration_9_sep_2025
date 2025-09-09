@@ -272,6 +272,13 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                 if Mdarpan_data:
                     #key = f"Oem_{brand}_{dealer}_{location}.xlsx"
                     mdarpan_df = pd.concat(Mdarpan_data, ignore_index=True)
+                    mdarpan_df['SAP Order Date'] = mdarpan_df['SAP Order Date'].astype(str).apply(
+                                    lambda x: pd.to_datetime(x[10:].replace('.', '-'), format='%d-%m-%Y') 
+                                    if len(x) > 10 else pd.to_datetime(x.replace('.', '-'), format='%d-%m-%Y'))
+
+                    mdarpan_df = mdarpan_df[(mdarpan_df['SAP Order Date'].dt.date>= start_date)
+                                            & (mdarpan_df['SAP Order Date'].dt.date<= end_date)]
+                    
                     oem_key2 = pd.concat(oem_data, ignore_index=True)
 
                     # Safety check if 'oem_po_part' exists
@@ -361,10 +368,10 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
             # Date validation
             try:
                 mrn['Receipt Date'] = pd.to_datetime(mrn['Receipt Date'], errors='coerce')
-                mrn = mrn[
-                    (mrn['Receipt Date'].dt.date >= start_date) & 
-                    (mrn['Receipt Date'].dt.date <= end_date)
-                ]
+                # mrn = mrn[
+                #     (mrn['Receipt Date'].dt.date >= start_date) & 
+                #     (mrn['Receipt Date'].dt.date <= end_date)
+                # ]
                 
                 if mrn.empty:
                     validation_errors.append(f"{location}: No MRN data within selected date range")
@@ -512,6 +519,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
