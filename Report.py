@@ -161,11 +161,11 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                     try:
                         mrn_list = read_file(file_path)
                         if len(mrn_list) >= 2:
-                            header = df.iloc[0]      
-                            data_df = df.iloc[1:].copy()  
-                            data_df.columns = header   
-                            data_df.reset_index(drop=True, inplace=True)
-                            st.write(data_df.columns)
+                            # header = df.iloc[0]      
+                            # data_df = df.iloc[1:].copy()  
+                            # data_df.columns = header   
+                            # data_df.reset_index(drop=True, inplace=True)
+                            st.write(mrn_list.columns)
                             # header_df = mrn_list[1].iloc[0] 
                             # data_df = mrn_list[0].iloc[1:].copy()
                             # data_df.columns = header_df
@@ -176,7 +176,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                             if missing_cols:
                                 validation_errors.append(f"{location}: MRN file missing columns - {', '.join(missing_cols)}")
                             else:
-                                Mrn_data.append(data_df)
+                                Mrn_data.append(mrn_list)
                     except Exception as e:
                         validation_errors.append(f"{location}: Error reading MRN file - {str(e)}")
                         # try:
@@ -543,6 +543,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
