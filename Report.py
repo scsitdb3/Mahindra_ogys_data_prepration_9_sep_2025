@@ -18,8 +18,8 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
 
     def read_file(file_path):
       
-      if "extracted_files\\" in file_path:
-          file_name = file_path.split("extracted_files\\", 1)[1]
+      if "extracted_files/" in file_path:
+          file_name = file_path.split("extracted_files/")[1]
       else:
           file_name = os.path.basename(file_path)
       try:
@@ -537,6 +537,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
