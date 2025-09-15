@@ -96,7 +96,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
             if not os.path.isfile(file_path):
                 continue
             elif not file.endswith('.xlsx'):
-                st.warning(f"File not Excel Workbook and .xlsx extention For : {brand}-{dealer}-{Location} :- {file}")
+                st.warning(f"File not Excel Workbook and .xlsx extention For : {brand}-{dealer}-{location} :- {file}")
                 continue
             df = read_file(file_path)
             if df is not None:
@@ -537,6 +537,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
