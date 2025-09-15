@@ -54,7 +54,7 @@ PERIOD_TYPES = {"Day": 1, "Week": 7, "Month": 30, "Quarter": 90, "Year": 365}
 
 def read_file(file_path):
     #file_paths= os.path.basename(file_path)
-    st.write(file_path)
+    #st.write(file_path)
     # Try to extract filename safely
     if "extracted_files/" in file_path:
         file_name = file_path.split("extracted_files/")[1]
@@ -386,6 +386,7 @@ if st.session_state.uploaded_file is not None:
         show_validation_issues()
     elif st.session_state.show_reports:
         show_reports()
+
 
 
 
