@@ -53,10 +53,15 @@ PERIOD_TYPES = {"Day": 1, "Week": 7, "Month": 30, "Quarter": 90, "Year": 365}
 # ---------------- File Readers ---------------- #
 
 def read_file(file_path):
-    file_name=file_path.split("extracted_files\\")[1]
+    file_paths= os.path.basename(file_path)
+    # Try to extract filename safely
+    if "extracted_files\\" in file_path:
+        file_name = file_paths.split("extracted_files\\", 1)[1]
+    else:
+        file_name = os.path.basename(file_path)
     try:
-        if file_path.lower().endswith(('.xlsx')):
-         return  pd.read_excel(file_path)
+        if file_path.lower().endswith('.xlsx'):
+            return pd.read_excel(file_path)
         else:
             return st.warning(f"File not Excel Workbook and .xlsx extention For : {file_name}")
     except Exception as e:
@@ -136,6 +141,7 @@ def validate_periods(all_locations, start_date, end_date, period_days):
         current_date = period_end + timedelta(days=1)
 
     for brand, dealer, location, location_path in all_locations:
+        
         oem_files = [f for f in os.listdir(location_path) if f.lower().startswith('oem')]
         mrn_files = [f for f in os.listdir(location_path) if f.lower().startswith('mrn')]
         if not oem_files or not mrn_files:
@@ -147,6 +153,10 @@ def validate_periods(all_locations, start_date, end_date, period_days):
                 oem_df = read_file(os.path.join(location_path, oem_file))
                 if oem_df is None or 'Po Date' not in oem_df.columns:
                     continue
+                elif not oem_file.endswith('.xlsx'):
+                    st.warning(f"File not Excel Workbook and .xlsx extention For : {brand}-{dealer}-{location}:-oem_file")
+                    continue
+                
                 oem_df['Po Date'] = pd.to_datetime(oem_df['Po Date'], errors='coerce')
                 for period_start, period_end in periods:
                     if any(period_start <= d.date() <= period_end for d in oem_df['Po Date'].dropna()):
@@ -375,6 +385,7 @@ if st.session_state.uploaded_file is not None:
         show_validation_issues()
     elif st.session_state.show_reports:
         show_reports()
+
 
 
 
