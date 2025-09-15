@@ -51,63 +51,78 @@ for var in state_vars:
 PERIOD_TYPES = {"Day": 1, "Week": 7, "Month": 30, "Quarter": 90, "Year": 365}
 
 # ---------------- File Readers ---------------- #
-def read_file(file_path, file_type=None):
+
+def read_file(file_path):
+    file_name=file_path.split("extracted_files\\")[1]
     try:
-        if file_type and file_type.lower() == 'mrn':
-            return read_mrn_file(file_path)
-        if file_path.lower().endswith(('.xls', '.xlsx')):
-            return read_excel_file(file_path)
-        return read_csv_file(file_path)
+        if file_path.lower().endswith(('.xlsx')):
+         return  pd.read_excel(file_path)
+        else:
+            return st.warning(f"File not Excel Workbook and .xlsx extention For : {file_name}")
     except Exception as e:
-        warnings.warn(f"Failed to read {file_path}: {str(e)}")
+        print(f" read failed for {file_path}: {e}")
         return None
+       
 
-def read_excel_file(file_path):
-    engines_to_try = ['openpyxl', 'xlrd'] if file_path.lower().endswith('.xlsx') else ['xlrd', 'openpyxl', 'pyxlsb']
-    for engine in engines_to_try:
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                return pd.read_excel(file_path, engine=engine)
-        except:
-            continue
-    return read_csv_file(file_path)
 
-def read_csv_file(file_path):
-    encodings_to_try = ['utf-8', 'windows-1252', 'iso-8859-1', 'latin1']
-    for encoding in encodings_to_try:
-        try:
-            df = pd.read_csv(file_path, encoding=encoding, sep=None, engine='python', on_bad_lines='warn', dtype=str)
-            if len(df.columns) == 1:
-                for sep in [',', ';', '\t', '|']:
-                    try:
-                        df = pd.read_csv(StringIO(df.iloc[:, 0].str.cat(sep='\n')), sep=sep, engine='python', on_bad_lines='warn')
-                        if len(df.columns) > 1:
-                            break
-                    except:
-                        continue
-            return df
-        except UnicodeDecodeError:
-            continue
-        except Exception as e:
-            warnings.warn(f"CSV read failed for {file_path} with {encoding}: {str(e)}")
-            continue
-    return None
 
-def read_mrn_file(file_path):
-    try:
-        tables = pd.read_html(file_path)
-        if len(tables) >= 2:
-            header_df = tables[1].iloc[0] 
-            data_df = tables[0].iloc[1:].copy()
-            data_df.columns = header_df
-            return data_df.reset_index(drop=True)
-        elif len(tables) == 1:
-            return tables[0]
-        return None
-    except Exception as e:
-        warnings.warn(f"MRN file read failed for {file_path}: {str(e)}")
-        return None
+# def read_file(file_path, file_type=None):
+#     try:
+#         if file_type and file_type.lower() == 'mrn':
+#             return read_mrn_file(file_path)
+#         if file_path.lower().endswith(('.xls', '.xlsx')):
+#             return read_excel_file(file_path)
+#         return read_csv_file(file_path)
+#     except Exception as e:
+#         warnings.warn(f"Failed to read {file_path}: {str(e)}")
+#         return None
+
+# def read_excel_file(file_path):
+#     engines_to_try = ['openpyxl', 'xlrd'] if file_path.lower().endswith('.xlsx') else ['xlrd', 'openpyxl', 'pyxlsb']
+#     for engine in engines_to_try:
+#         try:
+#             with warnings.catch_warnings():
+#                 warnings.simplefilter("ignore")
+#                 return pd.read_excel(file_path, engine=engine)
+#         except:
+#             continue
+#     return read_csv_file(file_path)
+
+# def read_csv_file(file_path):
+#     encodings_to_try = ['utf-8', 'windows-1252', 'iso-8859-1', 'latin1']
+#     for encoding in encodings_to_try:
+#         try:
+#             df = pd.read_csv(file_path, encoding=encoding, sep=None, engine='python', on_bad_lines='warn', dtype=str)
+#             if len(df.columns) == 1:
+#                 for sep in [',', ';', '\t', '|']:
+#                     try:
+#                         df = pd.read_csv(StringIO(df.iloc[:, 0].str.cat(sep='\n')), sep=sep, engine='python', on_bad_lines='warn')
+#                         if len(df.columns) > 1:
+#                             break
+#                     except:
+#                         continue
+#             return df
+#         except UnicodeDecodeError:
+#             continue
+#         except Exception as e:
+#             warnings.warn(f"CSV read failed for {file_path} with {encoding}: {str(e)}")
+#             continue
+#     return None
+
+# def read_mrn_file(file_path):
+#     try:
+#         tables = pd.read_html(file_path)
+#         if len(tables) >= 2:
+#             header_df = tables[1].iloc[0] 
+#             data_df = tables[0].iloc[1:].copy()
+#             data_df.columns = header_df
+#             return data_df.reset_index(drop=True)
+#         elif len(tables) == 1:
+#             return tables[0]
+#         return None
+#     except Exception as e:
+#         warnings.warn(f"MRN file read failed for {file_path}: {str(e)}")
+#         return None
 
 # ---------------- Validation Functions ---------------- #
 def validate_periods(all_locations, start_date, end_date, period_days):
@@ -360,5 +375,6 @@ if st.session_state.uploaded_file is not None:
         show_validation_issues()
     elif st.session_state.show_reports:
         show_reports()
+
 
 
