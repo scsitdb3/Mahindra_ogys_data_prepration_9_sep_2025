@@ -95,7 +95,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
             
             if not os.path.isfile(file_path):
                 continue
-            elif not fpath.endswith('.xlsx'):
+            elif not file.endswith('.xlsx'):
                 st.warning(f"File not Excel Workbook and .xlsx extention For : {brand}-{dealer}-{Location} :- {file}")
                 continue
             df = read_file(file_path)
@@ -159,7 +159,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                 elif file_lower.startswith('mrn'):
                     # Validate MRN columns
                     try:
-                        mrn_list = pd.read_html(file_path)
+                        mrn_list = read_file(file_path)
                         if len(mrn_list) >= 2:
                             header_df = mrn_list[1].iloc[0] 
                             data_df = mrn_list[0].iloc[1:].copy()
@@ -537,6 +537,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
