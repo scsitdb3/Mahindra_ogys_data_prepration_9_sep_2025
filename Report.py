@@ -15,52 +15,68 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
     #from ogy import select_categories
     
     dfs = {}
-        
-    def read_file(file_path):
-        try:
-            # First try reading as Excel file
-            if file_path.lower().endswith(('.xls', '.xlsx')):
-                try:
-                    # For .xlsx files
-                    if file_path.lower().endswith('.xlsx'):
-                        return pd.read_excel(file_path, engine='openpyxl')
-                    # For .xls files
-                    else:
-                        # First try with xlrd (older version)
-                        try:
-                            return pd.read_excel(file_path, engine='xlrd')
-                        except:
-                            # Then try with openpyxl
-                            try:
-                                return pd.read_excel(file_path, engine='openpyxl')
-                            except:
-                                # Finally try with pyxlsb if it's a binary Excel file
-                                try:
-                                    return pd.read_excel(file_path, engine='pyxlsb')
-                                except:
-                                    # If all else fails, try reading as CSV
-                                    return try_read_as_csv(file_path)
-                except Exception as e:
-                    print(f"Excel read failed for {file_path}, trying CSV approach: {e}")
-                    return try_read_as_csv(file_path)
-            # For non-Excel files, try as CSV
-            else:
-                return try_read_as_csv(file_path)
-        except Exception as e:
-            print(f"Failed to read {file_path}: {e}")
-            return None
 
-    def try_read_as_csv(file_path):
-        try:
-            # Try UTF-8 first
-            return pd.read_csv(file_path, encoding='utf-8', sep=None, engine='python', on_bad_lines='skip')
-        except UnicodeDecodeError:
-            try:
-                # Try Windows-1252 if UTF-8 fails
-                return pd.read_csv(file_path, encoding='windows-1252', sep=None, engine='python', on_bad_lines='skip')
-            except Exception as e:
-                print(f"CSV read failed for {file_path}: {e}")
-                return None
+    def read_file(file_path):
+      
+      if "extracted_files\\" in file_path:
+          file_name = file_path.split("extracted_files\\", 1)[1]
+      else:
+          file_name = os.path.basename(file_path)
+      try:
+          if file_path.lower().endswith('.xlsx'):
+              return pd.read_excel(file_path)
+          else:
+              return st.warning(f"File not Excel Workbook and .xlsx extention For : {file_name}")
+      except Exception as e:
+          print(f" read failed for {file_path}: {e}")
+          return None
+                    
+        
+    # def read_file(file_path):
+    #     try:
+    #         # First try reading as Excel file
+    #         if file_path.lower().endswith(('.xls', '.xlsx')):
+    #             try:
+    #                 # For .xlsx files
+    #                 if file_path.lower().endswith('.xlsx'):
+    #                     return pd.read_excel(file_path, engine='openpyxl')
+    #                 # For .xls files
+    #                 else:
+    #                     # First try with xlrd (older version)
+    #                     try:
+    #                         return pd.read_excel(file_path, engine='xlrd')
+    #                     except:
+    #                         # Then try with openpyxl
+    #                         try:
+    #                             return pd.read_excel(file_path, engine='openpyxl')
+    #                         except:
+    #                             # Finally try with pyxlsb if it's a binary Excel file
+    #                             try:
+    #                                 return pd.read_excel(file_path, engine='pyxlsb')
+    #                             except:
+    #                                 # If all else fails, try reading as CSV
+    #                                 return try_read_as_csv(file_path)
+    #             except Exception as e:
+    #                 print(f"Excel read failed for {file_path}, trying CSV approach: {e}")
+    #                 return try_read_as_csv(file_path)
+    #         # For non-Excel files, try as CSV
+    #         else:
+    #             return try_read_as_csv(file_path)
+    #     except Exception as e:
+    #         print(f"Failed to read {file_path}: {e}")
+    #         return None
+
+    # def try_read_as_csv(file_path):
+    #     try:
+    #         # Try UTF-8 first
+    #         return pd.read_csv(file_path, encoding='utf-8', sep=None, engine='python', on_bad_lines='skip')
+    #     except UnicodeDecodeError:
+    #         try:
+    #             # Try Windows-1252 if UTF-8 fails
+    #             return pd.read_csv(file_path, encoding='windows-1252', sep=None, engine='python', on_bad_lines='skip')
+    #         except Exception as e:
+    #             print(f"CSV read failed for {file_path}: {e}")
+    #             return None
     
     # Process each location
     for i, (brand, dealer, location, location_path) in enumerate(all_locations):
@@ -79,7 +95,9 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
             
             if not os.path.isfile(file_path):
                 continue
-
+            elif not fpath.endswith('.xlsx'):
+                st.warning(f"File not Excel Workbook and .xlsx extention For : {brand}-{dealer}-{Location} :- {file}")
+                continue
             df = read_file(file_path)
             if df is not None:
                 df['__source_file__'] = file
@@ -519,6 +537,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
