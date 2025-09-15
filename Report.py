@@ -165,14 +165,14 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                             # data_df = df.iloc[1:].copy()  
                             # data_df.columns = header   
                             # data_df.reset_index(drop=True, inplace=True)
-                            st.write(mrn_list.columns)
+                            #st.write(mrn_list.columns)
                             # header_df = mrn_list[1].iloc[0] 
                             # data_df = mrn_list[0].iloc[1:].copy()
                             # data_df.columns = header_df
                             # data_df.reset_index(drop=True, inplace=True)
                             
                             required_cols = ['PO Number', 'Part Number', 'Stock Recvd', 'Receipt Type']
-                            missing_cols = [col for col in required_cols if col not in data_df.columns]
+                            missing_cols = [col for col in required_cols if col not in mrn_list.columns]
                             if missing_cols:
                                 validation_errors.append(f"{location}: MRN file missing columns - {', '.join(missing_cols)}")
                             else:
@@ -187,7 +187,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                         #         data_df.columns = header_df
                         #         data_df.reset_index(drop=True, inplace=True)        
                         #         required_cols = ['PO Number', 'Part Number', 'Stock Recvd', 'Receipt Type']
-                        #         missing_cols = [col for col in required_cols if col not in data_df.columns]
+                        #         missing_cols = [col for col in required_cols if col not in mrn_list.columns]
                         #         if missing_cols:
                         #             validation_errors.append(f"{location}: MRN file missing columns - {', '.join(missing_cols)}")
                         #         else:
@@ -543,6 +543,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
