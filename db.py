@@ -2,7 +2,7 @@ import pyodbc
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+load_dotenv(dotenv_path='.env')
 
 def create_mssql_connection():
     server = os.getenv("SERVER")
@@ -19,5 +19,6 @@ def create_mssql_connection():
     except Exception as e:
         print(f"Error connecting to MSSQL database: {e}")
         return None
+
 
 #create_mssql_connection()        
