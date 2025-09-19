@@ -10,6 +10,10 @@ import warnings
 from io import StringIO
 import time
 from Report import process_files
+from new_ui import main as ui_main
+from tbl import connection, cursor, User_event_Log
+from user_event_log import log_app_events
+
 
 # ---------------- Page Config ---------------- #
 st.set_page_config(page_title="Mahindra Report Generator", layout="wide", initial_sidebar_state="expanded")
@@ -304,88 +308,104 @@ def show_reports():
                            file_name="Mahindra_Reports.zip", mime="application/zip")
 
 # ---------------- Sidebar ---------------- #
-with st.sidebar:
-    st.header("⚙ Settings")
-    uploaded_file = st.file_uploader("Upload Mahindra ZIP file", type=['zip'])
-    if uploaded_file is not None:
-        st.session_state.uploaded_file = uploaded_file
-    select_categories = st.multiselect("Choose categories", options=['Spares', 'Accessories', 'All'], default='Spares')
-    default_end = datetime.today()
-    default_start = default_end - timedelta(days=59)
-    start_date = st.date_input("Start Date", value=default_start)
-    end_date = st.date_input("End Date", value=default_end)
-    period_type = st.selectbox("Select period type", options=list(PERIOD_TYPES.keys()))
-    st.session_state.period_type = period_type
-    process_btn = st.button("🚀 Generate Reports", type="primary")
+ui_main()
+if st.session_state.get("logged_in", False):
+    with st.sidebar:
+        st.header("⚙ Settings")
+        uploaded_file = st.file_uploader("Upload Mahindra ZIP file", type=['zip'])
+        if uploaded_file is not None:
+            st.session_state.uploaded_file = uploaded_file
+        select_categories = st.multiselect("Choose categories", options=['Spares', 'Accessories', 'All'], default='Spares')
+        default_end = datetime.today()
+        default_start = default_end - timedelta(days=59)
+        start_date = st.date_input("Start Date", value=default_start)
+        end_date = st.date_input("End Date", value=default_end)
+        period_type = st.selectbox("Select period type", options=list(PERIOD_TYPES.keys()))
+        st.session_state.period_type = period_type
+        process_btn = st.button("🚀 Generate Reports", type="primary")
+    
+    # ---------------- Main Processing ---------------- #
+    if (process_btn or st.session_state.continue_processing) and st.session_state.uploaded_file is not None:
+        if st.session_state.uploaded_file.size > 200 * 1024 * 1024:
+            st.error("File size exceeds 200MB limit")
+            st.stop()
+    
+        temp_dir = tempfile.mkdtemp()
+        extract_path = os.path.join(temp_dir, "extracted_files")
+        os.makedirs(extract_path, exist_ok=True)
+    
+        try:
+            with zipfile.ZipFile(st.session_state.uploaded_file, 'r') as zip_ref:
+                zip_ref.extractall(extract_path)
+            st.session_state.extracted_path = extract_path
+            st.success("✅ ZIP file extracted successfully")
+    
+            all_locations = []
+            for brand in os.listdir(extract_path):
+                for dealer in os.listdir(os.path.join(extract_path, brand)):
+                    for location in os.listdir(os.path.join(extract_path, brand, dealer)):
+                        location_path = os.path.join(extract_path, brand, dealer, location)
+                        if os.path.isdir(location_path):
+                            all_locations.append((brand, dealer, location, location_path))
+    
+            missing_files = []
+            for brand, dealer, location, location_path in all_locations:
+                required = {'OEM': False, 'MRN': False, 'Stock': False,'Mdarpan':False}
+                for file in os.listdir(location_path):
+                    f = file.lower()
+                    if f.startswith('oem'): required['OEM'] = True
+                    if f.startswith('mrn'): required['MRN'] = True
+                    if f.startswith('stock'): required['Stock'] = True
+                    if f.startswith('mdarpan'): required['Mdarpan'] = True    
+                for k, v in required.items():
+                    if not v:
+                        missing_files.append(f"{brand}/{dealer}/{location} - Missing: {k}")
+    
+            period_days = PERIOD_TYPES.get(st.session_state.period_type, 1)
+            period_validation_errors, validation_log = validate_periods(all_locations, start_date, end_date, period_days)
+            oem_mismatches, mrn_mismatches, mdarpan_mismatches = validate_oem_mrn_po_codes(all_locations)
+    
+            st.session_state.missing_files = missing_files
+            st.session_state.period_validation_errors = period_validation_errors
+            st.session_state.validation_log = validation_log
+            st.session_state.oem_mismatches = oem_mismatches
+            st.session_state.mrn_mismatches = mrn_mismatches
+            st.session_state.mdarpan_mismatches = mdarpan_mismatches
+    
+            # Process only if allowed
+            if st.session_state.continue_processing or (not missing_files and not period_validation_errors and oem_mismatches.empty and mrn_mismatches.empty and mdarpan_mismatches.empty):
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                with st.spinner("Processing files..."):
+                    process_files([], all_locations, start_date, end_date, len(all_locations), progress_bar, status_text, select_categories)
+                st.session_state.processing_complete = True
+                st.session_state.show_reports = True
+                
+                from user_event_log import log_app_events
+                log_app_events(
+                    user_id=st.session_state.get("user_id"),
+                    start_date=start_date,
+                    end_date=end_date,
+                    select_categories=select_categories,
+                    missing_files=missing_files,
+                    validation_log_df=validation_log,
+                    success=can_process,
+                    period_type=period_type  
+                )
+                
+            else:
+                st.session_state.show_reports = False
+    
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    # ---------------- Output ---------------- #
+    if st.session_state.uploaded_file is not None:
+        if (st.session_state.missing_files or st.session_state.period_validation_errors or not st.session_state.oem_mismatches.empty or not st.session_state.mrn_mismatches.empty or not st.session_state.mdarpan_mismatches.empty) and not st.session_state.continue_processing:
+            show_validation_issues()
+        elif st.session_state.show_reports:
+            show_reports()
 
-# ---------------- Main Processing ---------------- #
-if (process_btn or st.session_state.continue_processing) and st.session_state.uploaded_file is not None:
-    if st.session_state.uploaded_file.size > 200 * 1024 * 1024:
-        st.error("File size exceeds 200MB limit")
-        st.stop()
-
-    temp_dir = tempfile.mkdtemp()
-    extract_path = os.path.join(temp_dir, "extracted_files")
-    os.makedirs(extract_path, exist_ok=True)
-
-    try:
-        with zipfile.ZipFile(st.session_state.uploaded_file, 'r') as zip_ref:
-            zip_ref.extractall(extract_path)
-        st.session_state.extracted_path = extract_path
-        st.success("✅ ZIP file extracted successfully")
-
-        all_locations = []
-        for brand in os.listdir(extract_path):
-            for dealer in os.listdir(os.path.join(extract_path, brand)):
-                for location in os.listdir(os.path.join(extract_path, brand, dealer)):
-                    location_path = os.path.join(extract_path, brand, dealer, location)
-                    if os.path.isdir(location_path):
-                        all_locations.append((brand, dealer, location, location_path))
-
-        missing_files = []
-        for brand, dealer, location, location_path in all_locations:
-            required = {'OEM': False, 'MRN': False, 'Stock': False,'Mdarpan':False}
-            for file in os.listdir(location_path):
-                f = file.lower()
-                if f.startswith('oem'): required['OEM'] = True
-                if f.startswith('mrn'): required['MRN'] = True
-                if f.startswith('stock'): required['Stock'] = True
-                if f.startswith('mdarpan'): required['Mdarpan'] = True    
-            for k, v in required.items():
-                if not v:
-                    missing_files.append(f"{brand}/{dealer}/{location} - Missing: {k}")
-
-        period_days = PERIOD_TYPES.get(st.session_state.period_type, 1)
-        period_validation_errors, validation_log = validate_periods(all_locations, start_date, end_date, period_days)
-        oem_mismatches, mrn_mismatches, mdarpan_mismatches = validate_oem_mrn_po_codes(all_locations)
-
-        st.session_state.missing_files = missing_files
-        st.session_state.period_validation_errors = period_validation_errors
-        st.session_state.validation_log = validation_log
-        st.session_state.oem_mismatches = oem_mismatches
-        st.session_state.mrn_mismatches = mrn_mismatches
-        st.session_state.mdarpan_mismatches = mdarpan_mismatches
-
-        # Process only if allowed
-        if st.session_state.continue_processing or (not missing_files and not period_validation_errors and oem_mismatches.empty and mrn_mismatches.empty and mdarpan_mismatches.empty):
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            with st.spinner("Processing files..."):
-                process_files([], all_locations, start_date, end_date, len(all_locations), progress_bar, status_text, select_categories)
-            st.session_state.processing_complete = True
-            st.session_state.show_reports = True
-        else:
-            st.session_state.show_reports = False
-
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-# ---------------- Output ---------------- #
-if st.session_state.uploaded_file is not None:
-    if (st.session_state.missing_files or st.session_state.period_validation_errors or not st.session_state.oem_mismatches.empty or not st.session_state.mrn_mismatches.empty or not st.session_state.mdarpan_mismatches.empty) and not st.session_state.continue_processing:
-        show_validation_issues()
-    elif st.session_state.show_reports:
-        show_reports()
 
 
 
