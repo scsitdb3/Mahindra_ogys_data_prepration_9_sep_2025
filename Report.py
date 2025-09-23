@@ -288,9 +288,9 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                 if Intransit_data:
                     intransit_df = pd.concat(Intransit_data, ignore_index=True)
                     intransit_df['Po Date'] = pd.to_datetime(intransit_df['Po Date'], errors='coerce')
-                    # intransit_df = intransit_df[
-                    #     (intransit_df['Po Date'].dt.date >= start_date) &
-                    #     (intransit_df['Po Date'].dt.date <= end_date)]
+                    intransit_df = intransit_df[
+                        (intransit_df['Po Date'].dt.date >= start_date) &
+                        (intransit_df['Po Date'].dt.date <= end_date)]
                     intransit_df['Location'] = location
                     intransit_df.rename(columns={
                         'Po No': 'OrderNumber',
@@ -511,6 +511,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
