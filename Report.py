@@ -140,8 +140,9 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
             key = f"OEM_{brand}_{dealer}_{location}.xlsx"
             oem_key = pd.concat(oem_data, ignore_index=True)
             oem_key['Supplier Name'] = oem_key['Supplier Name'].astype(str)
-            oem_key['Po line item status'] = oem_key['Po line item status'].astype(str)
-            oem_key['PO Rejection Reason'] = oem_key['PO Rejection Reason'].astype(str)
+            oem_key['PO Rejection Reason'] = oem_key['PO Rejection Reason'].fillna('').astype(str)
+            oem_key['Po line item status'] = oem_key['Po line item status'].fillna('').astype(str)
+
             
             # Date validation
             try:
@@ -181,9 +182,10 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                 Po2 = oem_key[
                     (oem_key['Po Status'] == 'Release') &
                     (oem_key['Supplier Name'].str.startswith('MAHINDRA', na=False)) &
-                    (oem_key['Po line item status'].isna()) &
+                    ((oem_key['Po line item status'].isna()) | (oem_key['Po line item status'] == ''))
                     (oem_key['OEM Order No'].notnull()) &
-                    (oem_key['PO Rejection Reason'].isna() | oem_key['PO Rejection Reason'].str.contains('Credit limit') | oem_key['PO Rejection Reason'].str.contains('Oldest') )
+                    (oem_key['PO Rejection Reason'].isna() |(oem_key['PO Rejection Reason'] == '')| oem_key['PO Rejection Reason'].str.contains('Credit limit', na=False) 
+                     | oem_key['PO Rejection Reason'].str.contains('Oldest', na=False) )
                 ]
 
                 part_po_so2 = Po2.pivot_table(
@@ -195,9 +197,10 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                 Po3 = oem_key[
                     (oem_key['Po Status'] == 'Release') &
                     (oem_key['Supplier Name'].str.startswith('MAHINDRA', na=False)) &
-                    (oem_key['Po line item status'].isna()) &
+                    ((oem_key['Po line item status'].isna()) | (oem_key['Po line item status'] == '')) &
                     (oem_key['OEM Order No'].isna()) &
-                (oem_key['PO Rejection Reason'].isna() | oem_key['PO Rejection Reason'].str.contains('Credit') | oem_key['PO Rejection Reason'].str.contains('Oldest') | oem_key['PO Rejection Reason'].str.contains('Material'))
+                (oem_key['PO Rejection Reason'].isna() |(oem_key['PO Rejection Reason'] == '') | oem_key['PO Rejection Reason'].str.contains('Credit', na=False) | 
+                 oem_key['PO Rejection Reason'].str.contains('Oldest', na=False) | oem_key['PO Rejection Reason'].str.contains('Material', na=False))
                 #    ~(oem_key['PO Rejection Reason'].str.contains('Credit|Oldest|Material', na=False)) 
                 &
                     (oem_key['Po Date'].dt.date >= (end_date - timedelta(days=2))) &
@@ -511,6 +514,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
