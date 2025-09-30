@@ -178,15 +178,28 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
                     index=['Po Release Date', 'Part No.', 'Po Number'],
                     aggfunc='sum'
                 ).reset_index().rename(columns={'SO qty.': 'PO qty.'})
-
                 Po2 = oem_key[
                     (oem_key['Po Status'] == 'Release') &
                     (oem_key['Supplier Name'].str.startswith('MAHINDRA', na=False)) &
-                    ((oem_key['Po line item status'].isna()) | (oem_key['Po line item status'] == ''))
+                    ((oem_key['Po line item status'].isna()) | (oem_key['Po line item status'] == '')) &
                     (oem_key['OEM Order No'].notnull()) &
-                    (oem_key['PO Rejection Reason'].isna() |(oem_key['PO Rejection Reason'] == '')| oem_key['PO Rejection Reason'].str.contains('Credit limit', na=False) 
-                     | oem_key['PO Rejection Reason'].str.contains('Oldest', na=False) )
+                    (
+                        oem_key['PO Rejection Reason'].isna() |
+                        (oem_key['PO Rejection Reason'] == '') |
+                        oem_key['PO Rejection Reason'].str.contains('Credit limit', na=False) |
+                        oem_key['PO Rejection Reason'].str.contains('Oldest', na=False)
+                    )
                 ]
+
+
+                # Po2 = oem_key[
+                #     (oem_key['Po Status'] == 'Release') &
+                #     (oem_key['Supplier Name'].str.startswith('MAHINDRA', na=False)) &
+                #     ((oem_key['Po line item status'].isna()) | (oem_key['Po line item status'] == ''))
+                #     (oem_key['OEM Order No'].notnull()) &
+                #     (oem_key['PO Rejection Reason'].isna() |(oem_key['PO Rejection Reason'] == '')| oem_key['PO Rejection Reason'].str.contains('Credit limit', na=False) 
+                #      | oem_key['PO Rejection Reason'].str.contains('Oldest', na=False) )
+                # ]
 
                 part_po_so2 = Po2.pivot_table(
                     values='PO qty.',
@@ -514,6 +527,7 @@ def process_files(validation_errors, all_locations, start_date, end_date,total_l
         )
     else:
         st.info("ℹ No reports available to download.")
+
 
 
 
